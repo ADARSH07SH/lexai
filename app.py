@@ -16,6 +16,16 @@ os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=ImportWarning)
 
+# Inject Streamlit Cloud secrets into OS env vars (must happen before any imports)
+try:
+    import streamlit as st
+    for key in ["GROQ_API_KEY", "WEAVIATE_URL", "WEAVIATE_API_KEY"]:
+        if key not in os.environ or not os.environ[key]:
+            if key in st.secrets:
+                os.environ[key] = st.secrets[key]
+except Exception:
+    pass
+
 import re
 from datetime import datetime
 import streamlit as st
