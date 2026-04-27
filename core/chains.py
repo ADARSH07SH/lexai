@@ -20,7 +20,10 @@ class LegalAIEngine:
 
     def __init__(self) -> None:
         self._cfg = AppConfig()
-        self._llm = ChatGroq(model_name=AppConfig.DEFAULT_MODEL)
+        self._llm = ChatGroq(
+            model_name=AppConfig.DEFAULT_MODEL,
+            api_key=AppConfig.GROQ_API_KEY
+        )
 
     # ------------------------------------------------------------------
     # Chain builders
