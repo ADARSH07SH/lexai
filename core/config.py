@@ -15,6 +15,12 @@ load_dotenv()
 class AppConfig:
     """Centralized configuration for LexAI services."""
 
+    def __init__(self):
+        """Load configuration at runtime to ensure Streamlit secrets are available."""
+        self.GROQ_API_KEY = self._get_secret("GROQ_API_KEY")
+        self.WEAVIATE_API_KEY = self._get_secret("WEAVIATE_API_KEY")
+        self.WEAVIATE_URL = self._get_secret("WEAVIATE_URL")
+
     @staticmethod
     def _get_secret(key: str) -> str:
         """Safely fetch a secret from env vars, falling back to Streamlit secrets."""
@@ -26,10 +32,6 @@ class AppConfig:
             except Exception:
                 pass
         return val
-
-    GROQ_API_KEY: str = _get_secret("GROQ_API_KEY")
-    WEAVIATE_API_KEY: str = _get_secret("WEAVIATE_API_KEY")
-    WEAVIATE_URL: str = _get_secret("WEAVIATE_URL")
 
     # Model defaults
     DEFAULT_MODEL = "llama-3.1-8b-instant"
