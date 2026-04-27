@@ -346,7 +346,7 @@ def run():
                     if in_summary:
                         summary_text += line + " "
                         continue
-                    match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)
+                    match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)$', line)
                     if match:
                         entries.append({"date": match.group(1).strip(), "event": match.group(2).strip()})
                 
