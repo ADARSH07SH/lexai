@@ -147,7 +147,16 @@ def run():
         # ── Tab 1 — Conversational Q&A ───────────────────────────────
         with tab_chat:
             st.subheader("Chat with the Document")
-            st.markdown("Ask anything about the uploaded legal document.")
+            
+            persona_options = [
+                "Elite Corporate Lawyer",
+                "General Layman User",
+                "Strict Judge",
+                "Adversarial Opponent"
+            ]
+            selected_persona = st.selectbox("Choose Assistant Persona:", persona_options, index=0)
+            
+            st.markdown(f"Ask anything about the uploaded legal document. Your assistant is acting as a **{selected_persona}**.")
 
             # Auto-scrolling chat container
             chat_container = st.container(height=400)
@@ -190,7 +199,7 @@ def run():
                     if not hits:
                         reply = "I cannot find any relevant sections in the document for this query."
                     else:
-                        reply, _ = ai.answer_question(hits, active_query, ai.build_qa_chain())
+                        reply, _ = ai.answer_question(hits, active_query, selected_persona, ai.build_qa_chain())
                     
                     st.session_state["chat_history"].append({
                         "role": "assistant", 
@@ -388,8 +397,8 @@ def run():
                         </div>
                         """
                     
-                    # Use st.markdown directly to avoid iframe height cutoff issues
-                    st.markdown(html, unsafe_allow_html=True)
+                    # Use components.html for robust rendering of custom CSS and HTML
+                    components.html(html, height=600, scrolling=True)
                 else:
                     st.markdown(timeline_raw)
 

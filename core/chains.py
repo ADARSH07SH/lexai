@@ -86,20 +86,20 @@ class LegalAIEngine:
     def build_qa_chain(self):
         """Build a conversational Q&A chain grounded in document context."""
         template = """
-        You are an elite corporate lawyer and legal advisor. The user is your client.
-        Answer their questions accurately and professionally based ONLY on the provided Context.
+        You are acting as a {persona}.
+        Answer the user's questions accurately and professionally based ONLY on the provided Context.
         If the Context does not contain the answer, politely say "I cannot find the answer to
         this in the document, but I advise caution." Do not fabricate facts.
 
         Context:
         {context}
 
-        Client's Question: {question}
+        Question: {question}
 
-        Lawyer's Advice:"""
+        Answer:"""
         return (
             PromptTemplate(
-                template=template, input_variables=["context", "question"]
+                template=template, input_variables=["context", "question", "persona"]
             )
             | self._llm
         )
@@ -315,10 +315,10 @@ class LegalAIEngine:
         result = chain.invoke(inputs)
         return result.content, prompt_val
 
-    def answer_question(self, doc_chunks: list, question: str, chain) -> tuple[str, str]:
+    def answer_question(self, doc_chunks: list, question: str, persona: str, chain) -> tuple[str, str]:
         """Answer a user's question using retrieved document chunks."""
         context_str = "\n".join(doc_chunks)
-        inputs = {"context": context_str, "question": question}
+        inputs = {"context": context_str, "question": question, "persona": persona}
         
         prompt_val = chain.first.invoke(inputs).to_string()
         print("\n" + "="*50)
