@@ -87,6 +87,11 @@ def run():
             "questions": ["Who are the parties involved?", "What is the governing law?", "What are the termination conditions?"],
             "clauses": ["Termination", "Liability", "Confidentiality"]
         }
+        st.session_state["summary_result"] = ""
+        st.session_state["risk_result"] = ""
+        st.session_state["adversarial_result"] = ""
+        st.session_state["timeline_result"] = ""
+        st.session_state["clause_results"] = {}
 
     # ── Sidebar: PDF upload ──────────────────────────────────────────
     pdf_file = st.sidebar.file_uploader(
@@ -104,6 +109,11 @@ def run():
             st.session_state["doc_ready"] = False
             st.session_state["chat_history"] = []
             st.session_state["full_text"] = ""
+            st.session_state["summary_result"] = ""
+            st.session_state["risk_result"] = ""
+            st.session_state["adversarial_result"] = ""
+            st.session_state["timeline_result"] = ""
+            st.session_state["clause_results"] = {}
 
         col_name = st.session_state["collection_id"]
 
@@ -201,7 +211,9 @@ def run():
                         st.session_state["full_text"],
                         ai.build_summary_chain(),
                     )
-                    st.markdown(summary)
+                    st.session_state["summary_result"] = summary
+            if st.session_state["summary_result"]:
+                st.markdown(st.session_state["summary_result"])
 
         # ── Tab 3 — Risk Scanner ─────────────────────────────────────
         with tab_risk:
@@ -216,7 +228,9 @@ def run():
                         st.session_state["full_text"],
                         ai.build_risk_chain(),
                     )
-                    st.markdown(risks)
+                    st.session_state["risk_result"] = risks
+            if st.session_state["risk_result"]:
+                st.markdown(st.session_state["risk_result"])
 
         # ── Tab 3.5 — Adversarial Detector ─────────────────────────────
         with tab_adversarial:
@@ -231,7 +245,9 @@ def run():
                         st.session_state["full_text"],
                         ai.build_adversarial_chain(),
                     )
-                    st.markdown(adv_analysis)
+                    st.session_state["adversarial_result"] = adv_analysis
+            if st.session_state["adversarial_result"]:
+                st.markdown(st.session_state["adversarial_result"])
 
         # ── Tab 4 — Clause Extractor ─────────────────────────────────
         with tab_clause:
@@ -300,79 +316,81 @@ def run():
                         st.session_state["full_text"],
                         ai.build_timeline_chain(),
                     )
+                    st.session_state["timeline_result"] = timeline_raw
                     
-                    # Parse the LLM output into timeline entries
-                    entries = []
-                    summary_text = ""
-                    in_summary = False
-                    for line in timeline_raw.split("\n"):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        if "SUMMARY:" in line:
-                            in_summary = True
-                            continue
-                        if "TIMELINE:" in line:
-                            continue
-                        if in_summary:
-                            summary_text += line + " "
-                            continue
-                        match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)
-                        if match:
-                            entries.append({"date": match.group(1).strip(), "event": match.group(2).strip()})
-                    
-                    # Color palette for timeline nodes
-                    colors = ["#4F8EF7", "#34D399", "#F59E0B", "#EF4444", "#A78BFA", "#EC4899", "#06B6D4", "#F97316"]
-                    
-                    if entries:
-                        # Build visual HTML timeline
-                        html = """
-                        <style>
-                        .tl-container { position: relative; padding: 20px 0; margin-left: 30px; }
-                        .tl-line { position: absolute; left: 18px; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #4F8EF7 0%, #A78BFA 50%, #EC4899 100%); border-radius: 2px; }
-                        .tl-item { position: relative; margin-bottom: 28px; padding-left: 50px; transition: transform 0.2s ease; }
-                        .tl-item:hover { transform: translateX(6px); }
-                        .tl-dot { position: absolute; left: 8px; top: 6px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-                        .tl-item:hover .tl-dot { transform: scale(1.3); box-shadow: 0 0 0 3px rgba(79,142,247,0.3), 0 4px 12px rgba(0,0,0,0.2); }
-                        .tl-date { font-weight: 700; font-size: 15px; color: #E2E8F0; margin-bottom: 2px; font-family: 'Segoe UI', sans-serif; }
-                        .tl-event { font-size: 14px; color: #94A3B8; line-height: 1.5; font-family: 'Segoe UI', sans-serif; }
-                        .tl-card { background: rgba(30, 41, 59, 0.7); border-radius: 10px; padding: 12px 16px; border-left: 3px solid; transition: background 0.2s ease, border-color 0.2s ease; }
-                        .tl-item:hover .tl-card { background: rgba(51, 65, 85, 0.8); }
-                        .tl-summary { background: rgba(30, 41, 59, 0.5); border-radius: 10px; padding: 16px; margin-top: 20px; margin-left: 30px; border: 1px solid rgba(148, 163, 184, 0.2); }
-                        .tl-summary p { color: #94A3B8; font-size: 14px; line-height: 1.6; margin: 0; font-family: 'Segoe UI', sans-serif; }
-                        .tl-summary-title { color: #E2E8F0; font-weight: 700; font-size: 14px; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
-                        </style>
-                        <div class="tl-container"><div class="tl-line"></div>
+            if st.session_state["timeline_result"]:
+                timeline_raw = st.session_state["timeline_result"]
+                # Parse the LLM output into timeline entries
+                entries = []
+                summary_text = ""
+                in_summary = False
+                for line in timeline_raw.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if "SUMMARY:" in line:
+                        in_summary = True
+                        continue
+                    if "TIMELINE:" in line:
+                        continue
+                    if in_summary:
+                        summary_text += line + " "
+                        continue
+                    match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)
+                    if match:
+                        entries.append({"date": match.group(1).strip(), "event": match.group(2).strip()})
+                
+                # Color palette for timeline nodes
+                colors = ["#4F8EF7", "#34D399", "#F59E0B", "#EF4444", "#A78BFA", "#EC4899", "#06B6D4", "#F97316"]
+                
+                if entries:
+                    # Build visual HTML timeline
+                    html = """
+                    <style>
+                    .tl-container { position: relative; padding: 20px 0; margin-left: 30px; }
+                    .tl-line { position: absolute; left: 18px; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #4F8EF7 0%, #A78BFA 50%, #EC4899 100%); border-radius: 2px; }
+                    .tl-item { position: relative; margin-bottom: 28px; padding-left: 50px; transition: transform 0.2s ease; }
+                    .tl-item:hover { transform: translateX(6px); }
+                    .tl-dot { position: absolute; left: 8px; top: 6px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                    .tl-item:hover .tl-dot { transform: scale(1.3); box-shadow: 0 0 0 3px rgba(79,142,247,0.3), 0 4px 12px rgba(0,0,0,0.2); }
+                    .tl-date { font-weight: 700; font-size: 15px; color: #E2E8F0; margin-bottom: 2px; font-family: 'Segoe UI', sans-serif; }
+                    .tl-event { font-size: 14px; color: #94A3B8; line-height: 1.5; font-family: 'Segoe UI', sans-serif; }
+                    .tl-card { background: rgba(30, 41, 59, 0.7); border-radius: 10px; padding: 12px 16px; border-left: 3px solid; transition: background 0.2s ease, border-color 0.2s ease; }
+                    .tl-item:hover .tl-card { background: rgba(51, 65, 85, 0.8); }
+                    .tl-summary { background: rgba(30, 41, 59, 0.5); border-radius: 10px; padding: 16px; margin-top: 20px; margin-left: 30px; border: 1px solid rgba(148, 163, 184, 0.2); }
+                    .tl-summary p { color: #94A3B8; font-size: 14px; line-height: 1.6; margin: 0; font-family: 'Segoe UI', sans-serif; }
+                    .tl-summary-title { color: #E2E8F0; font-weight: 700; font-size: 14px; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
+                    </style>
+                    <div class="tl-container"><div class="tl-line"></div>
+                    """
+                    for i, entry in enumerate(entries):
+                        color = colors[i % len(colors)]
+                        warning = "⚠️ " if "⚠️" in entry["date"] or "⚠️" in entry["event"] else ""
+                        date_clean = entry["date"].replace("⚠️", "").strip()
+                        event_clean = entry["event"].replace("⚠️", "").strip()
+                        html += f"""
+                        <div class="tl-item">
+                            <div class="tl-dot" style="background: {color};"></div>
+                            <div class="tl-card" style="border-left-color: {color};">
+                                <div class="tl-date">{warning}{date_clean}</div>
+                                <div class="tl-event">{event_clean}</div>
+                            </div>
+                        </div>
                         """
-                        for i, entry in enumerate(entries):
-                            color = colors[i % len(colors)]
-                            warning = "⚠️ " if "⚠️" in entry["date"] or "⚠️" in entry["event"] else ""
-                            date_clean = entry["date"].replace("⚠️", "").strip()
-                            event_clean = entry["event"].replace("⚠️", "").strip()
-                            html += f"""
-                            <div class="tl-item">
-                                <div class="tl-dot" style="background: {color};"></div>
-                                <div class="tl-card" style="border-left-color: {color};">
-                                    <div class="tl-date">{warning}{date_clean}</div>
-                                    <div class="tl-event">{event_clean}</div>
-                                </div>
-                            </div>
-                            """
-                        html += "</div>"
-                        
-                        if summary_text.strip():
-                            html += f"""
-                            <div class="tl-summary">
-                                <div class="tl-summary-title">📝 Timeline Summary</div>
-                                <p>{summary_text.strip()}</p>
-                            </div>
-                            """
-                        
-                        # Calculate height based on number of entries
-                        height = len(entries) * 80 + 200
-                        components.html(html, height=height, scrolling=False)
-                    else:
-                        st.markdown(timeline_raw)
+                    html += "</div>"
+                    
+                    if summary_text.strip():
+                        html += f"""
+                        <div class="tl-summary">
+                            <div class="tl-summary-title">📝 Timeline Summary</div>
+                            <p>{summary_text.strip()}</p>
+                        </div>
+                        """
+                    
+                    # Use st.markdown directly to avoid iframe height cutoff issues
+                    st.markdown(html, unsafe_allow_html=True)
+                else:
+                    st.markdown(timeline_raw)
 
     else:
         st.info("👈 Upload a PDF from the sidebar to get started.")
