@@ -129,9 +129,9 @@ def run():
                 st.session_state["doc_ready"] = True
 
         # ── Tabs ─────────────────────────────────────────────────────
-        tab_chat, tab_summary, tab_risk, tab_clause, tab_timeline = st.tabs(
+        tab_chat, tab_summary, tab_risk, tab_adversarial, tab_clause, tab_timeline = st.tabs(
             ["🤖 Chat Assistant", "📋 Executive Summary",
-             "🛡️ Risk Scanner", "📑 Clause Extractor", "📅 Timeline Extraction"]
+             "🛡️ Risk Scanner", "⚔️ Adversarial Detector", "📑 Clause Extractor", "📅 Timeline Extraction"]
         )
 
         # ── Tab 1 — Conversational Q&A ───────────────────────────────
@@ -139,26 +139,26 @@ def run():
             st.subheader("Chat with the Document")
             st.markdown("Ask anything about the uploaded legal document.")
 
-            # Dynamic Suggestion Chips
-            st.markdown("**Suggested Questions:**")
-            sug_col1, sug_col2, sug_col3 = st.columns(3)
-            active_query = None
-            
-            sugs = st.session_state["suggestions"]["questions"]
-            
-            if len(sugs) > 0 and sug_col1.button(sugs[0]):
-                active_query = sugs[0]
-            if len(sugs) > 1 and sug_col2.button(sugs[1]):
-                active_query = sugs[1]
-            if len(sugs) > 2 and sug_col3.button(sugs[2]):
-                active_query = sugs[2]
-
             # Auto-scrolling chat container
             chat_container = st.container(height=400)
             
+            active_query = None
             with chat_container:
                 for msg in st.session_state["chat_history"]:
                     st.chat_message(msg["role"]).write(msg["content"])
+                    
+                # Show dynamic suggestions INSIDE the chat container, only if empty
+                if len(st.session_state["chat_history"]) == 0:
+                    st.chat_message("assistant").write("Hello! I've analyzed the document. Here are some questions you can ask me:")
+                    sugs = st.session_state["suggestions"]["questions"]
+                    
+                    sug_col1, sug_col2, sug_col3 = st.columns(3)
+                    if len(sugs) > 0 and sug_col1.button(sugs[0]):
+                        active_query = sugs[0]
+                    if len(sugs) > 1 and sug_col2.button(sugs[1]):
+                        active_query = sugs[1]
+                    if len(sugs) > 2 and sug_col3.button(sugs[2]):
+                        active_query = sugs[2]
 
             # Standard chat input
             user_input = st.chat_input("e.g. What are the payment terms?")
@@ -217,6 +217,21 @@ def run():
                         ai.build_risk_chain(),
                     )
                     st.markdown(risks)
+
+        # ── Tab 3.5 — Adversarial Detector ─────────────────────────────
+        with tab_adversarial:
+            st.subheader("Adversarial Clause Detector")
+            st.markdown(
+                "Play **Devil's Advocate**. Discover how the opposing party could "
+                "exploit these clauses against you, and how to defend yourself."
+            )
+            if st.button("Run Adversarial Detector"):
+                with st.spinner("Tearing the contract apart…"):
+                    adv_analysis, _ = ai.run_adversarial(
+                        st.session_state["full_text"],
+                        ai.build_adversarial_chain(),
+                    )
+                    st.markdown(adv_analysis)
 
         # ── Tab 4 — Clause Extractor ─────────────────────────────────
         with tab_clause:
@@ -354,8 +369,8 @@ def run():
                             """
                         
                         # Calculate height based on number of entries
-                        height = len(entries) * 80 + 150
-                        components.html(html, height=height, scrolling=True)
+                        height = len(entries) * 80 + 200
+                        components.html(html, height=height, scrolling=False)
                     else:
                         st.markdown(timeline_raw)
 

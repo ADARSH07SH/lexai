@@ -70,6 +70,10 @@ class LegalAIEngine:
 
         If a detail is not applicable for this document type, state
         "Not applicable to this document type."
+        
+        Rules:
+        - Only mention information that appears verbatim in the document.
+        - Be concise and use bullet points where appropriate.
 
         Document Text:
         {context}
@@ -191,6 +195,30 @@ class LegalAIEngine:
         Document Text:
         {context}
         """
+        return (
+            PromptTemplate(template=template, input_variables=["context"])
+            | self._llm
+        )
+
+    def build_adversarial_chain(self):
+        """Build a chain that plays devil's advocate against a contract."""
+        template = """
+        You are a ruthless, highly-skilled adversarial lawyer representing the opposing party. 
+        Your goal is to tear this contract apart. Review the Context below and identify every 
+        single clause that works AGAINST the user, or could be exploited by the other side.
+        
+        For each adversarial finding, provide:
+        - 🛑 **The Trap**: What the clause says.
+        - 🗡️ **The Weapon**: How the opposing party will use it against the user.
+        - 🛡️ **The Defense**: How the user should rewrite or negotiate it.
+        
+        If the document is perfectly balanced (very rare), state:
+        "This document is surprisingly balanced, but still proceed with caution."
+        
+        Context:
+        {context}
+        
+        Adversarial Analysis:"""
         return (
             PromptTemplate(template=template, input_variables=["context"])
             | self._llm
@@ -327,3 +355,15 @@ class LegalAIEngine:
         result = chain.invoke(inputs)
         return result.content, prompt_val
 
+    def run_adversarial(self, document_text: str, chain) -> tuple[str, str]:
+        """Run the adversarial clause detector."""
+        inputs = {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
+        
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Adversarial Detector):")
+        print(prompt_val)
+        print("="*50 + "\n")
+        
+        result = chain.invoke(inputs)
+        return result.content, prompt_val
