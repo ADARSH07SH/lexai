@@ -1,10 +1,18 @@
-# LexAI — Legal Document Intelligence
+# LexAI v2 — Legal Document Intelligence
 
-AI-powered legal document analysis platform built with RAG (Retrieval-Augmented Generation) and LLMs.
+AI-powered legal document analysis platform built with true RAG (Retrieval-Augmented Generation) and LLMs.
 
 Upload any legal PDF — contracts, court judgments, NDAs — and interact with it using natural language.
 
-## Features
+## ✨ New in v2
+- **True RAG Chat**: The Chat Assistant now performs semantic searches across the entire document using Weaviate before answering, meaning it can answer questions no matter how long the document is.
+- **Smart Suggestions**: One-click suggestion buttons for quick chats and common clause extractions (e.g., Termination, Liability).
+- **LLM Prompt Transparency**: View the exact prompt and document context sent to the LLM directly in the UI or in the terminal logs.
+- **Auto-Scrolling UI**: The Chat Assistant now features a fixed-height container that automatically scrolls to the newest message.
+- **Dynamic Metadata**: The sidebar displays uploaded file sizes, upload timestamps, and active database engines. Weaviate collections are intelligently named based on the PDF filename.
+- **Optimized Caching**: Heavy AI and database connections are cached using `@st.cache_resource` for instantaneous hot-reloads and better performance.
+
+## Core Features
 
 - **💬 Chat Assistant** — Conversational Q&A grounded in the uploaded document
 - **⚡ Executive Summary** — One-click extraction of parties, dates, financials, and overview
@@ -50,10 +58,10 @@ streamlit run app.py
 
 ```
 lexai/
-├── app.py                  # Streamlit entry point
+├── app.py                  # Streamlit entry point (UI & caching)
 ├── core/
 │   ├── config.py           # Environment & app configuration
-│   └── chains.py           # LLM prompt chains (summary, QA, risk, clause)
+│   └── chains.py           # LLM prompt chains and logging logic
 ├── ingestion/
 │   └── parser.py           # PDF text extraction & document chunking
 ├── retrieval/

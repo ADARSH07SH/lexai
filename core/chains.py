@@ -125,48 +125,74 @@ class LegalAIEngine:
     # High-level invocation helpers
     # ------------------------------------------------------------------
 
-    def extract_clause(self, relevant_docs: list, query: str, chain) -> str:
-        """Run the clause-extraction chain and clean the LLM output."""
+    def extract_clause(self, relevant_docs: list, query: str, chain) -> tuple[str, str]:
+        """Run the clause-extraction chain, clean the output, and log."""
         context_str = (
             "\n".join(relevant_docs)
             if isinstance(relevant_docs, list)
             else str(relevant_docs)
         )
 
-        raw = chain.invoke({"context": context_str, "clause": query})
+        inputs = {"context": context_str, "clause": query}
+        
+        # Log to console
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Clause Extractor):")
+        print(prompt_val)
+        print("="*50 + "\n")
+
+        raw = chain.invoke(inputs)
         text = raw.content
 
-        # Strip any residual HTML-like tags
+        # Clean output
         text = re.sub(r"<.*?>", "", text).replace("\n", " ")
-
-        # If the model says "Clause Not Found", return that directly
         if re.search(r"Clause Not Found", text):
-            return "Clause Not Found"
+            return "Clause Not Found", prompt_val
 
-        # Trim anything after code-fence or triple-quote artifacts
         for pattern in [r"^(.*?)```", r'^(.*?)"""', r"^(.*?)'''"]:
             match = re.search(pattern, text)
             if match:
                 text = match.group(1)
 
-        return text.strip()
+        return text.strip(), prompt_val
 
-    def generate_summary(self, document_text: str, chain) -> str:
+    def generate_summary(self, document_text: str, chain) -> tuple[str, str]:
         """Generate an executive summary from the first N characters."""
-        result = chain.invoke(
-            {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
-        )
-        return result.content
+        inputs = {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
+        
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Executive Summary):")
+        print(prompt_val)
+        print("="*50 + "\n")
+        
+        result = chain.invoke(inputs)
+        return result.content, prompt_val
 
-    def answer_question(self, doc_chunks: list, question: str, chain) -> str:
+    def answer_question(self, doc_chunks: list, question: str, chain) -> tuple[str, str]:
         """Answer a user's question using retrieved document chunks."""
         context_str = "\n".join(doc_chunks)
-        result = chain.invoke({"context": context_str, "question": question})
-        return result.content
+        inputs = {"context": context_str, "question": question}
+        
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Chat Assistant):")
+        print(prompt_val)
+        print("="*50 + "\n")
+        
+        result = chain.invoke(inputs)
+        return result.content, prompt_val
 
-    def scan_risks(self, document_text: str, chain) -> str:
+    def scan_risks(self, document_text: str, chain) -> tuple[str, str]:
         """Scan the document for contractual red flags."""
-        result = chain.invoke(
-            {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
-        )
-        return result.content
+        inputs = {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
+        
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Risk Scanner):")
+        print(prompt_val)
+        print("="*50 + "\n")
+        
+        result = chain.invoke(inputs)
+        return result.content, prompt_val
