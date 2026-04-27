@@ -73,12 +73,7 @@ def run():
         page_icon="⚖️",
     )
 
-    st.markdown(
-        "<h1 style='text-align:center; font-weight:700; "
-        "font-family:sans-serif; padding-top:0;'>"
-        "⚖️ LexAI &mdash; Legal Document Intelligence</h1>",
-        unsafe_allow_html=True,
-    )
+
 
     # ── Session bootstrap ────────────────────────────────────────────
     if "doc_ready" not in st.session_state:
@@ -281,18 +276,83 @@ def run():
 
         # ── Tab 5 — Timeline Extraction ────────────────────────────────
         with tab_timeline:
-            st.subheader("Document Timeline")
-            st.markdown(
-                "Automatically extract and organize every date, deadline, "
-                "and time-bound obligation from the document in chronological order."
-            )
-            if st.button("Extract Timeline"):
+            if st.button("📅 Extract Timeline"):
                 with st.spinner("Scanning document for dates and events…"):
-                    timeline, _ = ai.extract_timeline(
+                    timeline_raw, _ = ai.extract_timeline(
                         st.session_state["full_text"],
                         ai.build_timeline_chain(),
                     )
-                    st.markdown(timeline)
+                    
+                    # Parse the LLM output into timeline entries
+                    entries = []
+                    summary_text = ""
+                    in_summary = False
+                    for line in timeline_raw.split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if "SUMMARY:" in line:
+                            in_summary = True
+                            continue
+                        if "TIMELINE:" in line:
+                            continue
+                        if in_summary:
+                            summary_text += line + " "
+                            continue
+                        match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)
+                        if match:
+                            entries.append({"date": match.group(1).strip(), "event": match.group(2).strip()})
+                    
+                    # Color palette for timeline nodes
+                    colors = ["#4F8EF7", "#34D399", "#F59E0B", "#EF4444", "#A78BFA", "#EC4899", "#06B6D4", "#F97316"]
+                    
+                    if entries:
+                        # Build visual HTML timeline
+                        html = """
+                        <style>
+                        .tl-container { position: relative; padding: 20px 0; margin-left: 30px; }
+                        .tl-line { position: absolute; left: 18px; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #4F8EF7 0%, #A78BFA 50%, #EC4899 100%); border-radius: 2px; }
+                        .tl-item { position: relative; margin-bottom: 28px; padding-left: 50px; transition: transform 0.2s ease; }
+                        .tl-item:hover { transform: translateX(6px); }
+                        .tl-dot { position: absolute; left: 8px; top: 6px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                        .tl-item:hover .tl-dot { transform: scale(1.3); box-shadow: 0 0 0 3px rgba(79,142,247,0.3), 0 4px 12px rgba(0,0,0,0.2); }
+                        .tl-date { font-weight: 700; font-size: 15px; color: #E2E8F0; margin-bottom: 2px; font-family: 'Segoe UI', sans-serif; }
+                        .tl-event { font-size: 14px; color: #94A3B8; line-height: 1.5; font-family: 'Segoe UI', sans-serif; }
+                        .tl-card { background: rgba(30, 41, 59, 0.7); border-radius: 10px; padding: 12px 16px; border-left: 3px solid; transition: background 0.2s ease, border-color 0.2s ease; }
+                        .tl-item:hover .tl-card { background: rgba(51, 65, 85, 0.8); }
+                        .tl-summary { background: rgba(30, 41, 59, 0.5); border-radius: 10px; padding: 16px; margin-top: 20px; margin-left: 30px; border: 1px solid rgba(148, 163, 184, 0.2); }
+                        .tl-summary p { color: #94A3B8; font-size: 14px; line-height: 1.6; margin: 0; font-family: 'Segoe UI', sans-serif; }
+                        .tl-summary-title { color: #E2E8F0; font-weight: 700; font-size: 14px; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
+                        </style>
+                        <div class="tl-container"><div class="tl-line"></div>
+                        """
+                        for i, entry in enumerate(entries):
+                            color = colors[i % len(colors)]
+                            warning = "⚠️ " if "⚠️" in entry["date"] or "⚠️" in entry["event"] else ""
+                            date_clean = entry["date"].replace("⚠️", "").strip()
+                            event_clean = entry["event"].replace("⚠️", "").strip()
+                            html += f"""
+                            <div class="tl-item">
+                                <div class="tl-dot" style="background: {color};"></div>
+                                <div class="tl-card" style="border-left-color: {color};">
+                                    <div class="tl-date">{warning}{date_clean}</div>
+                                    <div class="tl-event">{event_clean}</div>
+                                </div>
+                            </div>
+                            """
+                        html += "</div>"
+                        
+                        if summary_text.strip():
+                            html += f"""
+                            <div class="tl-summary">
+                                <div class="tl-summary-title">📝 Timeline Summary</div>
+                                <p>{summary_text.strip()}</p>
+                            </div>
+                            """
+                        
+                        st.markdown(html, unsafe_allow_html=True)
+                    else:
+                        st.markdown(timeline_raw)
 
     else:
         st.info("👈 Upload a PDF from the sidebar to get started.")
