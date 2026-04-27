@@ -161,6 +161,41 @@ class LegalAIEngine:
         Keywords:"""
         return PromptTemplate(template=template, input_variables=["question"]) | self._llm
 
+    def build_timeline_chain(self):
+        """Build a chain to extract a chronological timeline from a legal document."""
+        template = """
+        You are an expert legal analyst specializing in temporal analysis.
+        Carefully read the document below and extract EVERY date, deadline,
+        or time-bound event mentioned. For each date found, identify what
+        legal event or obligation it corresponds to.
+
+        Output the timeline in STRICT chronological order using this format:
+        
+        TIMELINE:
+        1. [DATE] — [Event Description]
+        2. [DATE] — [Event Description]
+        ...
+        
+        SUMMARY:
+        [One paragraph summarizing the key temporal obligations and deadlines]
+        
+        If no dates are found, respond with:
+        "No specific dates or deadlines were found in this document."
+
+        Rules:
+        - Include exact dates (e.g., January 1, 2026) when available
+        - Include relative dates (e.g., "30 days after signing") when exact dates aren't given
+        - Include recurring events (e.g., "Monthly on the 1st")
+        - Mark critical deadlines with ⚠️
+        
+        Document Text:
+        {context}
+        """
+        return (
+            PromptTemplate(template=template, input_variables=["context"])
+            | self._llm
+        )
+
     # ------------------------------------------------------------------
     # High-level invocation helpers
     # ------------------------------------------------------------------
@@ -278,3 +313,17 @@ class LegalAIEngine:
         
         result = chain.invoke(inputs)
         return result.content, prompt_val
+
+    def extract_timeline(self, document_text: str, chain) -> tuple[str, str]:
+        """Extract a chronological timeline of dates and events."""
+        inputs = {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
+        
+        prompt_val = chain.first.invoke(inputs).to_string()
+        print("\n" + "="*50)
+        print("🧠 LLM PROMPT (Timeline Extraction):")
+        print(prompt_val)
+        print("="*50 + "\n")
+        
+        result = chain.invoke(inputs)
+        return result.content, prompt_val
+

@@ -131,9 +131,9 @@ def run():
                 st.session_state["doc_ready"] = True
 
         # ── Tabs ─────────────────────────────────────────────────────
-        tab_chat, tab_summary, tab_risk, tab_clause = st.tabs(
-            ["💬 Chat Assistant", "⚡ Executive Summary",
-             "🚩 Risk Scanner", "🔍 Clause Extractor"]
+        tab_chat, tab_summary, tab_risk, tab_clause, tab_timeline = st.tabs(
+            ["🤖 Chat Assistant", "📋 Executive Summary",
+             "🛡️ Risk Scanner", "📑 Clause Extractor", "📅 Timeline Extraction"]
         )
 
         # ── Tab 1 — Conversational Q&A ───────────────────────────────
@@ -278,6 +278,21 @@ def run():
                             key=f"out_{idx}",
                             height=300,
                         )
+
+        # ── Tab 5 — Timeline Extraction ────────────────────────────────
+        with tab_timeline:
+            st.subheader("Document Timeline")
+            st.markdown(
+                "Automatically extract and organize every date, deadline, "
+                "and time-bound obligation from the document in chronological order."
+            )
+            if st.button("Extract Timeline"):
+                with st.spinner("Scanning document for dates and events…"):
+                    timeline, _ = ai.extract_timeline(
+                        st.session_state["full_text"],
+                        ai.build_timeline_chain(),
+                    )
+                    st.markdown(timeline)
 
     else:
         st.info("👈 Upload a PDF from the sidebar to get started.")
