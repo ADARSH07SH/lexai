@@ -121,9 +121,88 @@ class LegalAIEngine:
             | self._llm
         )
 
+    def build_suggestion_chain(self):
+        """Build a chain to generate dynamic questions and clauses."""
+        template = """
+        You are an expert legal assistant. Read the provided Document Text.
+        Generate exactly 3 insightful questions the user could ask about this document,
+        and exactly 3 key legal clauses (1-3 words each, e.g. "Termination", "Confidentiality")
+        that would be useful to extract from this document.
+        
+        Output STRICTLY in the following format with NO other text:
+        QUESTIONS:
+        1. [Question 1]
+        2. [Question 2]
+        3. [Question 3]
+        CLAUSES:
+        1. [Clause 1]
+        2. [Clause 2]
+        3. [Clause 3]
+
+        Document Text:
+        {context}
+        """
+        return (
+            PromptTemplate(template=template, input_variables=["context"])
+            | self._llm
+        )
+
+    def build_keyword_extraction_chain(self):
+        """Build a chain to extract BM25 search keywords from a chat query."""
+        template = """
+        You are a search query generator. Given the user's question, extract the 3 to 5 most important 
+        keywords or short phrases to search for in a legal document database.
+        Output ONLY the keywords separated by spaces. Do NOT output any conversational text.
+        
+        Question: {question}
+        Keywords:"""
+        return PromptTemplate(template=template, input_variables=["question"]) | self._llm
+
     # ------------------------------------------------------------------
     # High-level invocation helpers
     # ------------------------------------------------------------------
+
+    def extract_search_keywords(self, question: str, chain) -> str:
+        """Convert a natural language question into BM25 keywords."""
+        if len(question.split()) < 4:
+            return question
+        return chain.invoke({"question": question}).content.strip()
+
+    def generate_suggestions(self, document_text: str, chain) -> dict:
+        """Generate and parse dynamic suggestions."""
+        inputs = {"context": document_text[: AppConfig.CONTEXT_CHAR_LIMIT]}
+        raw = chain.invoke(inputs).content
+        
+        # Parse the raw text into a dictionary
+        res = {"questions": [], "clauses": []}
+        mode = None
+        for line in raw.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            if "QUESTIONS:" in line:
+                mode = "q"
+                continue
+            if "CLAUSES:" in line:
+                mode = "c"
+                continue
+            
+            # Match "1. Text" or "- Text"
+            match = re.match(r"^(?:\d+\.|-)\s*(.+)$", line)
+            if match:
+                val = match.group(1).replace("[", "").replace("]", "").replace('"', '').strip()
+                if mode == "q" and len(res["questions"]) < 3:
+                    res["questions"].append(val)
+                elif mode == "c" and len(res["clauses"]) < 3:
+                    res["clauses"].append(val)
+                    
+        # Fallbacks if LLM fails formatting
+        if not res["questions"]:
+            res["questions"] = ["Who are the parties involved?", "What is the governing law?", "What are the termination conditions?"]
+        if not res["clauses"]:
+            res["clauses"] = ["Termination", "Liability", "Confidentiality"]
+            
+        return res
 
     def extract_clause(self, relevant_docs: list, query: str, chain) -> tuple[str, str]:
         """Run the clause-extraction chain, clean the output, and log."""

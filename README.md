@@ -19,15 +19,24 @@ Upload any legal PDF — contracts, court judgments, NDAs — and interact with 
 - **🚩 Risk Scanner** — Automated detection of red-flag clauses (auto-renewals, liability traps, etc.)
 - **🔍 Clause Extractor** — Targeted keyword-based clause retrieval and summarization
 
+## How It Works (Architecture)
+
+LexAI is built using a lightweight but powerful Legal AI pipeline:
+
+- **1. Parsing & Chunking**: When you upload a PDF, PyPDF2 extracts the text. The document is then dynamically "chunked" based on headings, paragraphs, and sections to preserve legal context (done in `ingestion/parser.py`).
+- **2. Embeddings / Vectorization**: To keep the system lightning-fast and offline-capable, LexAI **does not use heavy vector embeddings**. Instead, it uses **BM25 Keyword Scoring** natively via Weaviate Cloud (or a local dictionary fallback). This ensures highly precise keyword-matching for specific legal clauses.
+- **3. Retrieval (RAG)**: When you ask a question, an LLM extracts the core keywords from your question, queries Weaviate via BM25, and retrieves the top 4 most relevant chunks from your document.
+- **4. LLM Generation**: Those chunks are sent to **Groq Cloud (Llama 3.1 8B)** to generate a highly accurate, grounded answer.
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Streamlit |
-| LLM Inference | Groq Cloud (Llama 3.1 8B) |
-| Vector Search | Weaviate (BM25) |
-| Document Parsing | PyPDF2 + pytesseract (OCR) |
-| Orchestration | LangChain |
+| Frontend UI | Streamlit |
+| LLM Engine | Groq Cloud (Llama 3.1 8B) |
+| Database | Weaviate (BM25 search mode) |
+| OCR / Extraction | PyPDF2 & Tesseract |
+| Orchestrator | LangChain |
 
 ## Quick Start
 
