@@ -87,10 +87,15 @@ class LegalAIEngine:
         """Build a conversational Q&A chain grounded in document context."""
         template = """
         You are acting as a {persona}.
-        Answer the user's questions accurately and professionally based ONLY on the provided Context.
-        If the Context does not contain the answer, politely say "I cannot find the answer to
-        this in the document, but I advise caution." Do not fabricate facts.
-
+        Answer the user's questions accurately and professionally based on the provided Context.
+        
+        IMPORTANT INSTRUCTIONS:
+        - If the Context contains relevant information, provide a detailed answer.
+        - If the Context is partially relevant, answer what you can and acknowledge what's missing.
+        - Only say "I cannot find the answer" if the Context is completely unrelated to the question.
+        - For questions about outcomes, decisions, or resolutions, look for judgment, ruling, or conclusion sections.
+        - For questions about penalties or fines, look for sections mentioning damages, compensation, or sanctions.
+        
         Context:
         {context}
 
@@ -157,8 +162,15 @@ class LegalAIEngine:
     def build_keyword_extraction_chain(self):
         """Build a chain to extract BM25 search keywords from a chat query."""
         template = """
-        You are a search query generator. Given the user's question, extract the 3 to 5 most important 
-        keywords or short phrases to search for in a legal document database.
+        You are a search query generator for legal documents. Given the user's question, extract the most important 
+        keywords and phrases to search for. Include synonyms and related legal terms.
+        
+        For questions about:
+        - Outcomes/decisions: include "judgment", "ruling", "decision", "held", "concluded"
+        - Penalties/fines: include "penalty", "fine", "damages", "compensation", "sanction"
+        - Issues/disputes: include "issue", "dispute", "contention", "matter", "question"
+        - Laws/regulations: include "act", "law", "statute", "provision", "section"
+        
         Output ONLY the keywords separated by spaces. Do NOT output any conversational text.
         
         Question: {question}

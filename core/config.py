@@ -36,4 +36,4 @@ class AppConfig:
     # Model defaults
     DEFAULT_MODEL = "llama-3.1-8b-instant"
     CONTEXT_CHAR_LIMIT = 15000
-    SEARCH_RESULT_LIMIT = 4
+    SEARCH_RESULT_LIMIT = 8

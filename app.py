@@ -215,10 +215,15 @@ def run():
                     # Extract keywords from the natural language question for better BM25 search
                     search_query = ai.extract_search_keywords(active_query, ai.build_keyword_extraction_chain())
                     
+                    # Try keyword search first
                     hits = retriever.keyword_search(query=search_query, collection_name=col_name)
                     
+                    # If no results, try with original question
                     if not hits:
-                        reply = "I cannot find any relevant sections in the document for this query."
+                        hits = retriever.keyword_search(query=active_query, collection_name=col_name)
+                    
+                    if not hits:
+                        reply = "I cannot find any relevant sections in the document for this query. Try rephrasing your question or asking about specific clauses or sections."
                     else:
                         reply, _ = ai.answer_question(hits, active_query, selected_persona, ai.build_qa_chain())
                     
@@ -419,7 +424,7 @@ def run():
                         """
                     
                     # Use components.html for robust rendering of custom CSS and HTML
-                    components.html(html, height=600, scrolling=True)
+                    components.html(html, height=600, scrolling=False)
                 else:
                     st.markdown(timeline_raw)
 
