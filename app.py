@@ -81,7 +81,7 @@ def run():
         st.session_state["doc_ready"] = False
         st.session_state["chat_history"] = []
         st.session_state["full_text"] = ""
-        st.session_state["pdf_name"] = ""
+        st.session_state["pdf_names"] = []
         st.session_state["collection_id"] = ""
         st.session_state["suggestions"] = {
             "questions": ["Who are the parties involved?", "What is the governing law?", "What are the termination conditions?"],
@@ -94,18 +94,23 @@ def run():
         st.session_state["clause_results"] = {}
 
     # ── Sidebar: PDF upload ──────────────────────────────────────────
-    pdf_file = st.sidebar.file_uploader(
-        label="Upload a legal document (PDF)", type="pdf"
+    pdf_files = st.sidebar.file_uploader(
+        label="Upload legal documents (PDF)", 
+        type="pdf",
+        accept_multiple_files=True
     )
 
     ai = get_ai_engine()
     retriever, backend_label = get_retriever()
 
-    if pdf_file:
+    if pdf_files:
+        # Get list of uploaded file names
+        uploaded_names = [f.name for f in pdf_files]
+        
         # Detect new file upload to reset state
-        if st.session_state["pdf_name"] != pdf_file.name:
-            st.session_state["pdf_name"] = pdf_file.name
-            st.session_state["collection_id"] = format_collection_name(pdf_file.name)
+        if st.session_state["pdf_names"] != uploaded_names:
+            st.session_state["pdf_names"] = uploaded_names
+            st.session_state["collection_id"] = format_collection_name("_".join(uploaded_names[:2]))  # Use first 2 names
             st.session_state["doc_ready"] = False
             st.session_state["chat_history"] = []
             st.session_state["full_text"] = ""
@@ -116,24 +121,40 @@ def run():
             st.session_state["clause_results"] = {}
 
         col_name = st.session_state["collection_id"]
+        
+        # Show uploaded files in sidebar
+        st.sidebar.success(f"📄 {len(pdf_files)} document(s) uploaded")
+        with st.sidebar.expander("View uploaded files"):
+            for idx, pdf_file in enumerate(pdf_files, 1):
+                st.write(f"{idx}. {pdf_file.name}")
 
-        # Process the uploaded PDF once per upload
+        # Process the uploaded PDFs once per upload
         if not st.session_state["doc_ready"]:
-            with st.spinner(f"Parsing document & building knowledge base…"):
-                raw_text = read_pdf(pdf_file)
-                st.session_state["full_text"] = raw_text
-                sections = chunk_document(raw_text)
+            with st.spinner(f"Parsing {len(pdf_files)} document(s) & building knowledge base…"):
+                all_text = ""
+                all_sections = []
+                
+                for pdf_file in pdf_files:
+                    raw_text = read_pdf(pdf_file)
+                    all_text += f"\n\n--- Document: {pdf_file.name} ---\n\n" + raw_text
+                    sections = chunk_document(raw_text)
+                    
+                    # Tag sections with source document
+                    for section in sections:
+                        section["source"] = pdf_file.name
+                    all_sections.extend(sections)
+                
+                st.session_state["full_text"] = all_text
 
                 retriever.create_collection(name=col_name)
                 retriever.index_documents(
-                    collection_name=col_name, sections=sections
+                    collection_name=col_name, sections=all_sections
                 )
-                
             # Generate AI Suggestions based on the text
             with st.spinner("Generating document insights…"):
                 print("[LexAI] Starting suggestion generation...")
                 st.session_state["suggestions"] = ai.generate_suggestions(
-                    raw_text, ai.build_suggestion_chain()
+                    all_text, ai.build_suggestion_chain()
                 )
                 print(f"[LexAI] Suggestions ready: {st.session_state['suggestions']}")
                 st.session_state["doc_ready"] = True
@@ -346,7 +367,7 @@ def run():
                     if in_summary:
                         summary_text += line + " "
                         continue
-                    match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)$', line)
+                    match = re.match(r'^(?:\d+\.)?\s*(.+?)\s*[—–-]\s*(.+)$', line)
                     if match:
                         entries.append({"date": match.group(1).strip(), "event": match.group(2).strip()})
                 
