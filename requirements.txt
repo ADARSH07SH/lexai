@@ -1,0 +1,9 @@
+streamlit
+langchain
+langchain-groq
+langchain-text-splitters
+weaviate-client<4.0.0
+PyPDF2
+pytesseract
+pypdfium2
+python-dotenv
