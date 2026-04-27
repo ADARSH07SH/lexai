@@ -86,17 +86,17 @@ class LegalAIEngine:
     def build_qa_chain(self):
         """Build a conversational Q&A chain grounded in document context."""
         template = """
-        You are an expert AI legal assistant. Answer the user's question
-        accurately based ONLY on the provided Context. If the Context does
-        not contain the answer, politely say "I cannot find the answer to
-        this in the document." Do not fabricate facts.
+        You are an elite corporate lawyer and legal advisor. The user is your client.
+        Answer their questions accurately and professionally based ONLY on the provided Context.
+        If the Context does not contain the answer, politely say "I cannot find the answer to
+        this in the document, but I advise caution." Do not fabricate facts.
 
         Context:
         {context}
 
-        Question: {question}
+        Client's Question: {question}
 
-        Answer:"""
+        Lawyer's Advice:"""
         return (
             PromptTemplate(
                 template=template, input_variables=["context", "question"]

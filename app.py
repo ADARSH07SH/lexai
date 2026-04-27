@@ -155,11 +155,12 @@ def run():
             active_query = None
             with chat_container:
                 for msg in st.session_state["chat_history"]:
-                    st.chat_message(msg["role"]).write(msg["content"])
+                    avatar = "👤" if msg["role"] == "user" else "⚖️"
+                    st.chat_message(msg["role"], avatar=avatar).write(msg["content"])
                     
                 # Show dynamic suggestions INSIDE the chat container, only if empty
                 if len(st.session_state["chat_history"]) == 0:
-                    st.chat_message("assistant").write("Hello! I've analyzed the document. Here are some questions you can ask me:")
+                    st.chat_message("assistant", avatar="⚖️").write("Hello! I am your AI Legal Advisor. I've analyzed the document. Here are some questions you can ask me:")
                     sugs = st.session_state["suggestions"]["questions"]
                     
                     sug_col1, sug_col2, sug_col3 = st.columns(3)
@@ -178,7 +179,7 @@ def run():
             if active_query:
                 st.session_state["chat_history"].append({"role": "user", "content": active_query})
                 with chat_container:
-                    st.chat_message("user").write(active_query)
+                    st.chat_message("user", avatar="👤").write(active_query)
 
                 with st.spinner("Retrieving document chunks and analyzing…"):
                     # Extract keywords from the natural language question for better BM25 search
