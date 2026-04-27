@@ -35,6 +35,7 @@ from core.chains import LegalAIEngine
 from core.config import AppConfig
 from retrieval.weaviate_client import WeaviateRetriever
 from retrieval.memory_store import InMemoryRetriever
+import streamlit.components.v1 as components
 
 
 @st.cache_resource
@@ -120,9 +121,11 @@ def run():
                 
             # Generate AI Suggestions based on the text
             with st.spinner("Generating document insights…"):
+                print("[LexAI] Starting suggestion generation...")
                 st.session_state["suggestions"] = ai.generate_suggestions(
                     raw_text, ai.build_suggestion_chain()
                 )
+                print(f"[LexAI] Suggestions ready: {st.session_state['suggestions']}")
                 st.session_state["doc_ready"] = True
 
         # ── Tabs ─────────────────────────────────────────────────────
@@ -350,7 +353,9 @@ def run():
                             </div>
                             """
                         
-                        st.markdown(html, unsafe_allow_html=True)
+                        # Calculate height based on number of entries
+                        height = len(entries) * 80 + 150
+                        components.html(html, height=height, scrolling=True)
                     else:
                         st.markdown(timeline_raw)
 
