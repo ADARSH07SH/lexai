@@ -22,7 +22,7 @@ class LegalAIEngine:
         self._cfg = AppConfig()
         self._llm = ChatGroq(
             model_name=AppConfig.DEFAULT_MODEL,
-            api_key=AppConfig.GROQ_API_KEY
+            api_key=self._cfg.GROQ_API_KEY
         )
 
     # ------------------------------------------------------------------
