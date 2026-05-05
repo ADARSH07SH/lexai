@@ -329,13 +329,14 @@ def run():
                         )
                         results.append(parsed)
 
-                    entries = list(clause_map.items())
+                    # Display results in corresponding columns
                     for idx, col in enumerate(columns):
-                        kw, vals = entries[idx]
-                        if not kw.strip():
+                        keyword = list(clause_map.keys())[idx]
+                        if not keyword.strip():
                             continue
-                        col.subheader(kw)
                         
+                        col.subheader(keyword)
+                        vals = clause_map[keyword]
                         text = "".join(vals)
                         col.text_area(
                             "Summary",
