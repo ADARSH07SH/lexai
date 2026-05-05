@@ -433,11 +433,11 @@ def run():
                         """
                     
                     # Calculate dynamic height based on number of entries
-                    # Each entry ~120px, summary ~100px, padding ~100px
-                    dynamic_height = min(len(entries) * 120 + 200, 1200)
+                    # Each entry ~150px, summary ~120px, padding ~100px
+                    dynamic_height = len(entries) * 150 + 220
                     
                     # Use components.html for robust rendering of custom CSS and HTML
-                    components.html(html, height=dynamic_height, scrolling=False)
+                    components.html(html, height=dynamic_height, scrolling=True)
                 else:
                     st.markdown(timeline_raw)
 
