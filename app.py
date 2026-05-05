@@ -330,20 +330,28 @@ def run():
                         results.append(parsed)
 
                     # Display results in corresponding columns
+                    keywords_list = list(clause_map.keys())
                     for idx, col in enumerate(columns):
-                        keyword = list(clause_map.keys())[idx]
+                        if idx >= len(keywords_list):
+                            break
+                        
+                        keyword = keywords_list[idx]
                         if not keyword.strip():
+                            col.info("No keyword provided")
                             continue
                         
                         col.subheader(keyword)
                         vals = clause_map[keyword]
-                        text = "".join(vals)
-                        col.text_area(
-                            "Summary",
-                            text,
-                            key=f"out_{idx}",
-                            height=300,
-                        )
+                        if vals:
+                            text = "".join(vals)
+                            col.text_area(
+                                "Summary",
+                                text,
+                                key=f"out_{idx}",
+                                height=300,
+                            )
+                        else:
+                            col.warning("No results found")
 
         # ── Tab 5 — Timeline Extraction ────────────────────────────────
         with tab_timeline:
